@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { firestore } from '@/firebase'
 import { Box, Stack, Typography, Button, Modal, TextField, ThemeProvider, createTheme } from '@mui/material'
-import { collection, doc, getDocs, query, setDoc, deleteDoc, getDoc, onSnapshot } from 'firebase/firestore'
+import { collection, doc, getDocs, query, setDoc, deleteDoc, getDoc, onSnapshot, writeBatch } from 'firebase/firestore'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 
 const style = {
@@ -82,6 +82,19 @@ export default function Home() {
   const inputRef = useRef(null);
 
   useEffect(() => {
+    const clearInventory = async () => {
+      const snapshot = await getDocs(collection(firestore, 'inventory'));
+      const batch = writeBatch(firestore);  // Use writeBatch instead of firestore.batch()
+
+      snapshot.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+
+      await batch.commit();
+    };
+
+    clearInventory(); // Call the clearInventory function on page load
+
     const snapshot = query(collection(firestore, 'inventory'));
     const unsubscribe = onSnapshot(snapshot, (querySnapshot) => {
       const inventoryList = [];
@@ -93,6 +106,7 @@ export default function Home() {
       });
       setInventory(inventoryList);
     });
+
     return () => unsubscribe();
   }, []);
 
